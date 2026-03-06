@@ -4,27 +4,38 @@ import { assets, dummyOrders } from '../../assets/assets';
 import toast from 'react-hot-toast';
 
 const Orders = () => {
-    const {currency, axios} = useAppContext();
+    const { currency, axios } = useAppContext();
     const [orders, setOrders] = useState([]);
-    const fetchOrders = async()=>{
-        try 
-        {
+    const fetchOrders = async () => {
+        try {
             const { data } = await axios.get('/api/order/seller');
-            if(data.success)
-            {
+            if (data.success) {
                 setOrders(data.orders)
-            }else{
+            } else {
                 toast.error(data.message)
             }
-        } catch (error) 
-        {
+        } catch (error) {
             toast.error(error.message)
         }
     }
 
-    useEffect(()=>{
-      fetchOrders();
-    },[])
+    const updateStatus = async (event, orderId) => {
+        try {
+            const { data } = await axios.post('/api/order/status', { orderId, status: event.target.value });
+            if (data.success) {
+                await fetchOrders();
+                toast.success(data.message);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+        }
+    }
+
+    useEffect(() => {
+        fetchOrders();
+    }, [])
 
     return (
         <div className='no-scrollbar flex-1 h-[95vh] overflow-y-scroll'>
@@ -44,7 +55,7 @@ const Orders = () => {
                                 ))}
                             </div>
                         </div>
-                              
+
                         <div className="text-sm md:text-base text-black/60">
                             <p className='font-medium mb-1'>{order.address.firstName} {order.address.lastName}</p>
                             <p>{order.address.street}, {order.address.city}</p>
@@ -52,14 +63,27 @@ const Orders = () => {
                             <p></p>
                             <p>{order.address.phone}</p>
                         </div>
-                              
+
                         <p className="font-medium text-lg my-auto">{currency}{order.amount}</p>
-                              
+
                         <div className="flex flex-col text-sm md:text-base text-black/60">
                             <p>Method: {order.paymentType}</p>
                             <p>Date: {new Date(order.createdAt).toLocaleDateString()}</p>
                             <p>Payment: {order.isPaid ? "Paid" : "Pending"}</p>
                         </div>
+                        <select
+                            onChange={(event) => updateStatus(event, order._id)}
+                            value={order.status}
+                            disabled={order.status === "Delivered" || order.status === "Cancelled"}
+                            className={`p-2 font-semibold border border-gray-300 rounded-md outline-none ${order.status === "Delivered" || order.status === "Cancelled" ? "bg-gray-200 cursor-not-allowed" : "bg-gray-50"}`}
+                        >
+                            <option value="Order Placed">Order Placed</option>
+                            <option value="Packing">Packing</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Out for delivery">Out for delivery</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
                     </div>
                 ))}
             </div>

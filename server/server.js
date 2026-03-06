@@ -28,15 +28,15 @@ await connectCloudinary();
 const allowedOrigins = ['http://localhost:5173'];
 
 // Middleware configuration
+app.post("/stripe", express.raw({ type: 'application/json' }), stripeWebhooks);
+
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(cors({origin: allowedOrigins, credentials: true}));
-
-app.post("/stripe", express.raw({type: 'application/json'}), stripeWebhooks);
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // Test route
-app.get('/', (req, res) => {res.send("API is Working");});
+app.get('/', (req, res) => { res.send("API is Working"); });
 app.use('/api/user', userRouter);
 app.use('/api/seller', sellerRouter);
 app.use("/api/product", productRouter);

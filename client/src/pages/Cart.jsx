@@ -1,11 +1,10 @@
-import React, { useState, useEffect} from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAppContext } from '../context/AppContext'
 import { assets, dummyAddress } from '../assets/assets';
 import toast from 'react-hot-toast';
-export default function Cart() 
-{
-    const {axios, user,products, currency, cartItems, removeFromCart,getCartCount,updateCartItem, navigate, getCartAmount, setCartItems} = useAppContext();
-    
+export default function Cart() {
+    const { axios, user, products, currency, cartItems, removeFromCart, getCartCount, updateCartItem, navigate, getCartAmount, setCartItems } = useAppContext();
+
     const [cartArray, setCartArray] = useState([]);
     const [address, setAddress] = useState([]);
     const [showAddress, setShowAddress] = useState(false);
@@ -13,81 +12,65 @@ export default function Cart()
     const [paymentOption, setPaymentOption] = useState("COD");
 
     const getUserAddress = async () => {
-        try 
-        {
+        try {
             const { data } = await axios.get('/api/address/get');
 
-            if (data.success) 
-            {
+            if (data.success) {
                 setAddress(data.addresses);
 
-                if (data.addresses.length > 0) 
-                {
+                if (data.addresses.length > 0) {
                     setSelectedAddress(data.addresses[0]);
                 }
-            } 
-            else 
-            {
+            }
+            else {
                 toast.error(data.message);
             }
 
-        } catch (error) 
-        {
+        } catch (error) {
             toast.error(error.message);
         }
     }
 
-    const placeOrder = async()=>{
-        try 
-        {
-            if(!selectedAddress)
-            {
+    const placeOrder = async () => {
+        try {
+            if (!selectedAddress) {
                 return toast.error("Please select an address")
             }
-        
+
             // Place Order with COD
-            if(paymentOption === "COD")
-            {
-                const {data} = await axios.post('/api/order/cod', {
-                    userId: user._id,
+            if (paymentOption === "COD") {
+                const { data } = await axios.post('/api/order/cod', {
                     items: cartArray.map(item => ({
                         product: item._id,
                         quantity: item.quantity
                     })),
                     address: selectedAddress._id
                 })
-            
-                if(data.success)
-                {
+
+                if (data.success) {
                     toast.success(data.message);
                     setCartItems({});
                     navigate('/my-orders');
                 }
-                else
-                {
+                else {
                     toast.error(data.message);
                 }
             }
-            else 
-            {
+            else {
                 // Place Order with Stripe
-                const {data} = await axios.post('/api/order/stripe', {
-                    userId: user._id,
+                const { data } = await axios.post('/api/order/stripe', {
                     items: cartArray.map(item => ({ product: item._id, quantity: item.quantity })),
                     address: selectedAddress._id
                 })
 
-                if(data.success)
-                {
+                if (data.success) {
                     window.location.replace(data.url)
                 }
-                else
-                {
+                else {
                     toast.error(data.message)
                 }
             }
-        }catch(error)
-        {
+        } catch (error) {
             toast.error(error.message);
         }
     }
@@ -103,18 +86,16 @@ export default function Cart()
     }
 
     useEffect(() => {
-        if (products.length > 0 && cartItems) 
-        {
+        if (products.length > 0 && cartItems) {
             getCart()
         }
     }, [products, cartItems])
 
     useEffect(() => {
-        if (user) 
-        {
+        if (user) {
             getUserAddress()
         }
-    },[user])
+    }, [user])
 
 
     return products.length > 0 && cartItems ? (
@@ -133,8 +114,8 @@ export default function Cart()
                 {cartArray.map((product, index) => (
                     <div key={index} className="grid grid-cols-[2fr_1fr_1fr] text-gray-500 items-center text-sm md:text-base font-medium pt-3">
                         <div className="flex items-center md:gap-6 gap-3">
-                            <div  onClick={() => {
-                                navigate(`/products/${product.category.toLowerCase()}/${product._id}`);scrollTo(0,0);
+                            <div onClick={() => {
+                                navigate(`/products/${product.category.toLowerCase()}/${product._id}`); scrollTo(0, 0);
                             }} className="cursor-pointer w-24 h-24 flex items-center justify-center border border-gray-300 rounded overflow-hidden">
                                 <img className="max-w-full h-full object-cover" src={product.image[0]} alt={product.name} />
                             </div>
@@ -144,7 +125,7 @@ export default function Cart()
                                     <p>Weight: <span>{product.weight || "N/A"}</span></p>
                                     <div className='flex items-center'>
                                         <p>Qty:</p>
-                                        <select onChange={(e)=> updateCartItem(product._id, Number(e.target.value))} value={cartItems[product._id]} className='outline-none'>
+                                        <select onChange={(e) => updateCartItem(product._id, Number(e.target.value))} value={cartItems[product._id]} className='outline-none'>
                                             {Array(cartItems[product._id] > 9 ? cartItems[product._id] : 9).fill("").map((_, index) => (
                                                 <option key={index} value={index + 1}>
                                                     {index + 1}
@@ -156,14 +137,14 @@ export default function Cart()
                             </div>
                         </div>
                         <p className="text-center">{currency}{product.offerPrice * product.quantity}</p>
-                        <button onClick={()=>removeFromCart(product._id)} className="cursor-pointer mx-auto">
+                        <button onClick={() => removeFromCart(product._id)} className="cursor-pointer mx-auto">
                             <img className='inline-block w-6 h-6' src={assets.remove_icon} alt="" />
                         </button>
                     </div>)
                 )}
 
-                <button onClick={()=>{navigate("/products");scrollTo(0,0)}} className="group cursor-pointer flex items-center mt-8 gap-2 text-primary font-medium">
-                    <img className='group-hover:-translate-x-1 transition' src={assets.arrow_right_icon_colored}/>
+                <button onClick={() => { navigate("/products"); scrollTo(0, 0) }} className="group cursor-pointer flex items-center mt-8 gap-2 text-primary font-medium">
+                    <img className='group-hover:-translate-x-1 transition' src={assets.arrow_right_icon_colored} />
                     Continue Shopping
                 </button>
 
@@ -188,7 +169,7 @@ export default function Cart()
                         {showAddress && (
                             <div className="absolute top-12 py-1 bg-white border border-gray-300 text-sm w-full">
                                 {address.map((address, index) => (
-                                    <p onClick={() => { setSelectedAddress(address); setShowAddress(false);}}
+                                    <p onClick={() => { setSelectedAddress(address); setShowAddress(false); }}
                                         className="text-gray-500 p-2 hover:bg-gray-100">
                                         {address.street}, {address.city}, {address.state}, {address.country}
                                     </p>
@@ -203,7 +184,7 @@ export default function Cart()
 
                     <p className="text-sm font-medium uppercase mt-6">Payment Method</p>
 
-                    <select onChange={(e)=>setPaymentOption(e.target.value)} className="w-full border border-gray-300 bg-white px-3 py-2 mt-2 outline-none">
+                    <select onChange={(e) => setPaymentOption(e.target.value)} className="w-full border border-gray-300 bg-white px-3 py-2 mt-2 outline-none">
                         <option value="COD">Cash On Delivery</option>
                         <option value="Online">Online Payment</option>
                     </select>
@@ -219,10 +200,10 @@ export default function Cart()
                         <span>Shipping Fee</span><span className="text-green-600">Free</span>
                     </p>
                     <p className="flex justify-between">
-                        <span>Tax (2%)</span><span>{currency}{getCartAmount()*2/100}</span>
+                        <span>Tax (2%)</span><span>{currency}{getCartAmount() * 2 / 100}</span>
                     </p>
                     <p className="flex justify-between text-lg font-medium mt-3">
-                        <span>Total Amount:</span><span>{currency}{getCartAmount() + getCartAmount()*2/100}</span>
+                        <span>Total Amount:</span><span>{currency}{getCartAmount() + getCartAmount() * 2 / 100}</span>
                     </p>
                 </div>
 
