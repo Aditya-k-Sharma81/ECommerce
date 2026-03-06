@@ -3,7 +3,7 @@ import { assets } from '../assets/assets';
 import { useAppContext } from '../context/AppContext'
 import toast from 'react-hot-toast';
 
-// Input Field Component 
+// Input Field 
 const InputField = ({type = "text", placeholder, name, handleChange, address}) => {
   return (
     <input
