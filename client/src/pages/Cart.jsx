@@ -98,7 +98,19 @@ export default function Cart() {
     }, [user])
 
 
-    return products.length > 0 && cartItems ? (
+    if (getCartCount() === 0) {
+        return (
+            <div className='flex flex-col items-center justify-center mt-24 py-10'>
+                <img className='w-24 opacity-30' src={assets.cart_icon} alt="Empty Cart" />
+                <p className='text-2xl text-gray-400 mt-5 font-medium'>Your cart is empty!</p>
+                <button onClick={() => navigate('/products')} className='mt-6 px-10 py-3 bg-primary text-white rounded hover:bg-primary-dull transition cursor-pointer'>
+                    Shop Now
+                </button>
+            </div>
+        )
+    }
+
+    return (
         <div className="flex flex-col md:flex-row mt-16">
             <div className='flex-1 max-w-4xl'>
                 <h1 className="text-3xl font-medium mb-6">
@@ -212,5 +224,5 @@ export default function Cart() {
                 </button>
             </div>
         </div>
-    ) : null;
+    );
 }
