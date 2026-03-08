@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import toast from 'react-hot-toast';
 export default function Navbar() {
     const [open, setOpen] = useState(false);
-    const { user, setUser, setShowUserLogin, navigate, searchQuery, setSearchQuery, getCartCount, axios } = useAppContext();
+    const { user, setUser, navigate, searchQuery, setSearchQuery, getCartCount, axios, setCartItems } = useAppContext();
 
     const logout = async () => {
         try {
@@ -13,7 +13,8 @@ export default function Navbar() {
             if (data.success) {
                 toast.success(data.message);
                 setUser(null);
-                navigate('/');
+                setCartItems({});
+                navigate('/login');
             } else {
                 toast.error(data.message);
             }
@@ -36,7 +37,6 @@ export default function Navbar() {
             <div className="hidden sm:flex items-center gap-8">
                 <NavLink to="/">Home</NavLink>
                 <NavLink to="/products">All Product</NavLink>
-                <NavLink to="/">Contact</NavLink>
 
                 <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-300 px-3 rounded-full">
                     <input onChange={(e) => setSearchQuery(e.target.value)} className="py-1.5 w-full bg-transparent outline-none placeholder-gray-500" type="text" placeholder="Search products" />
@@ -49,7 +49,7 @@ export default function Navbar() {
                 </div>
 
                 {!user ? (
-                    <button onClick={() => setShowUserLogin(true)} className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition text-white rounded-full">
+                    <button onClick={() => navigate('/login')} className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition text-white rounded-full">
                         Login
                     </button>
                 ) : (<div className='relative group'>
@@ -77,8 +77,7 @@ export default function Navbar() {
                 <NavLink to="/products" onClick={() => setOpen(false)}>All Product</NavLink>
                 {user && <NavLink to="/profile" onClick={() => setOpen(false)}>My Profile</NavLink>}
                 {user && <NavLink to="/my-orders" onClick={() => setOpen(false)}>My Orders</NavLink>}
-                <NavLink to="/" onClick={() => setOpen(false)}>Contact</NavLink>
-                {!user ? (<button onClick={() => { setOpen(false); setShowUserLogin(true) }} className="cursor-pointer px-6 py-2 mt-2 bg-primary hover:bg-primary-dull transition text-white rounded-full text-sm">
+                {!user ? (<button onClick={() => { setOpen(false); navigate('/login') }} className="cursor-pointer px-6 py-2 mt-2 bg-primary hover:bg-primary-dull transition text-white rounded-full text-sm">
                     Login
                 </button>) : (<button onClick={logout} className="cursor-pointer px-6 py-2 mt-2 bg-primary hover:bg-primary-dull transition text-white rounded-full text-sm">
                     LogOut

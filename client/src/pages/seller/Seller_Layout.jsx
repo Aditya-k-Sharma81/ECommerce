@@ -7,9 +7,8 @@ import { NavLink } from 'react-router-dom';
 import toast from "react-hot-toast";
 
 
-export default function Seller_Layout() 
-{
-    const {axios, navigate} = useAppContext();
+export default function Seller_Layout() {
+    const { axios, navigate, setIsSeller } = useAppContext();
 
     const sidebarLinks = [
         { name: "Add Product", path: "/seller", icon: assets.add_icon },
@@ -17,22 +16,19 @@ export default function Seller_Layout()
         { name: "Orders", path: "/seller/orders", icon: assets.order_icon },
     ];
 
-    const logout = async() =>{
-        try 
-        {
-            const {data} = await axios.get("/api/seller/logout");
-            if(data.success)
-            {
+    const logout = async () => {
+        try {
+            const { data } = await axios.get("/api/seller/logout");
+            if (data.success) {
                 toast.success(data.message);
-                navigate("/");
+                setIsSeller(false);
+                navigate("/login");
             }
-            else
-            {
+            else {
                 toast.error(data.message);
             }
         }
-        catch(error)
-        {
+        catch (error) {
             toast.error("Logout failed");
         }
     }
@@ -53,12 +49,11 @@ export default function Seller_Layout()
                     {sidebarLinks.map((item) => (
                         <NavLink to={item.path} key={item.name} end={item.path === "/seller"}
                             className={({ isActive }) =>
-                              `flex items-center py-3 px-4 gap-3 ${
-                                isActive
-                                  ? "border-r-4 md:border-r-[6px] bg-primary/10 border-primary text-primary"
-                                  : "hover:bg-gray-100/90 border-white"
-                              }`}>
-                            <img src={item.icon} className='w-7 h-7'/>
+                                `flex items-center py-3 px-4 gap-3 ${isActive
+                                    ? "border-r-4 md:border-r-[6px] bg-primary/10 border-primary text-primary"
+                                    : "hover:bg-gray-100/90 border-white"
+                                }`}>
+                            <img src={item.icon} className='w-7 h-7' />
                             <p className="md:block hidden text-center">{item.name}</p>
                         </NavLink>
                     ))}
