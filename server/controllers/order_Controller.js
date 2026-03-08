@@ -2,6 +2,7 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Stripe from 'stripe';
 import User from '../models/User.js';
+import { sendOrderConfirmationEmail, sendStatusUpdateEmail } from "../utils/emailService.js";
 
 // Place Order COD : /api/order/cod
 export const placeOrderCOD = async (req, res) => {
@@ -13,20 +14,38 @@ export const placeOrderCOD = async (req, res) => {
             return res.json({ success: false, message: "Invalid data" });
         }
 
-        // calculate amount Using Items
-        let amount = await items.reduce(async (acc, item) => {
+        // Fetch User for email
+        const user = await User.findById(userId);
+
+        // calculate amount Using Items and collect item details for email
+        let amount = 0;
+        let emailItems = [];
+
+        for (const item of items) {
             const product = await Product.findById(item.product);
-            return (await acc) + product.offerPrice * item.quantity;
-        }, 0);
+            const itemTotal = product.offerPrice * item.quantity;
+            amount += itemTotal;
+            emailItems.push({
+                productName: product.name,
+                quantity: item.quantity,
+                price: product.offerPrice
+            });
+        }
 
-        amount += Math.floor(amount * 0.02);
+        const deliveryCharge = Math.floor(amount * 0.02);
+        amount += deliveryCharge;
 
-        await Order.create({
+        const order = await Order.create({
             userId, items, amount, address, paymentType: "COD"
         })
 
         // Clear user cart
         await User.findByIdAndUpdate(userId, { cartItems: {} });
+
+        // Send confirmation email
+        if (user && user.email) {
+            await sendOrderConfirmationEmail(user.email, user.name, order._id, emailItems, amount);
+        }
 
         return res.json({ success: true, message: "Order Placed successfully" });
     }
@@ -129,16 +148,30 @@ export const stripeWebhooks = async (request, response) => {
     const sig = request.headers["stripe-signature"];
     let event;
 
+    console.log("Stripe Webhook received");
+
     try {
-        event = stripeInstance.webhooks.constructEvent(
-            request.body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
+        if (!process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET === "") {
+            // If secret is missing, we try to parse it directly in development (NOT SECURE FOR PRODUCTION)
+            if (process.env.NODE_ENV === 'development') {
+                console.warn("⚠️ STRIPE_WEBHOOK_SECRET is missing. Bypassing signature check for development.");
+                event = JSON.parse(request.body.toString());
+            } else {
+                throw new Error("STRIPE_WEBHOOK_SECRET is not configured");
+            }
+        } else {
+            event = stripeInstance.webhooks.constructEvent(
+                request.body,
+                sig,
+                process.env.STRIPE_WEBHOOK_SECRET
+            );
+        }
     } catch (error) {
-        console.error(`Webhook Error: ${error.message}`);
+        console.error(`❌ Webhook Error: ${error.message}`);
         return response.status(400).send(`Webhook Error: ${error.message}`);
     }
+
+    console.log(`Event Type: ${event.type}`);
 
     // Handle the event
     switch (event.type) {
@@ -146,11 +179,40 @@ export const stripeWebhooks = async (request, response) => {
             const session = event.data.object;
             const { orderId, userId } = session.metadata;
 
+            console.log(`Processing completed checkout for Order: ${orderId}, User: ${userId}`);
+
+            // Fetch order first to check if already paid (prevent duplicate emails)
+            const existingOrder = await Order.findById(orderId);
+            if (!existingOrder) {
+                console.error(`❌ Order ${orderId} not found in database.`);
+                break;
+            }
+            if (existingOrder.isPaid) {
+                console.log(`ℹ️ Order ${orderId} already marked as paid.`);
+                break;
+            }
+
             // Mark Payment as Paid
-            await Order.findByIdAndUpdate(orderId, { isPaid: true });
+            const order = await Order.findByIdAndUpdate(orderId, { isPaid: true }, { new: true }).populate("items.product");
 
             // Clear user cart
-            await User.findByIdAndUpdate(userId, { cartItems: {} });
+            const user = await User.findByIdAndUpdate(userId, { cartItems: {} }, { new: true });
+
+            console.log(`User found: ${user ? user.email : 'No'} | Order items: ${order ? order.items.length : 0}`);
+
+            // Send confirmation email
+            if (user && user.email && order) {
+                const emailItems = order.items.map(item => ({
+                    productName: item.product ? item.product.name : "Vegetable Item",
+                    quantity: item.quantity,
+                    price: item.product ? item.product.offerPrice : 0
+                }));
+
+                console.log("📧 Attempting to send online order confirmation email...");
+                await sendOrderConfirmationEmail(user.email, user.name, orderId, emailItems, order.amount);
+            } else {
+                console.error("❌ Could not send email: User or Order data missing during webhook.");
+            }
 
             break;
         }
@@ -246,6 +308,12 @@ export const updateStatus = async (req, res) => {
 
         order.status = status;
         await order.save();
+
+        // Send status update email
+        const user = await User.findById(order.userId);
+        if (user && user.email) {
+            sendStatusUpdateEmail(user.email, user.name, orderId, status);
+        }
 
         res.json({ success: true, message: "Status Updated Successfully" });
     }
