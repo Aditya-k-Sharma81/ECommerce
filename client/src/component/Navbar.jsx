@@ -31,7 +31,7 @@ export default function Navbar() {
     return (
         <nav className="flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 border-b border-gray-300 bg-white relative transition-all">
             <NavLink to='/' onClick={() => setOpen(false)}>
-                <img src={assets.logo} className='h-9' />
+                <img src={assets.Navbar_Logo} className='h-9' />
             </NavLink>
 
             <div className="hidden sm:flex items-center gap-8">
