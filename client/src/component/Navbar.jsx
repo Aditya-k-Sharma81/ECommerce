@@ -29,7 +29,7 @@ export default function Navbar() {
         }
     }, [searchQuery])
     return (
-        <nav className="flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 border-b border-gray-300 bg-white relative transition-all">
+        <nav className="flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 border-b border-gray-300 bg-white sticky top-0 z-50 transition-all">
             <NavLink to='/' onClick={() => setOpen(false)}>
                 <img src={assets.Navbar_Logo} className='h-9' />
             </NavLink>
@@ -72,7 +72,7 @@ export default function Navbar() {
                 </button>
             </div>
 
-            {open && (<div className={`${open ? 'flex' : 'hidden'} absolute top-[60px] left-0 w-full bg-white shadow-md py-4 flex-col items-start gap-2 px-5 text-sm md:hidden`}>
+            {open && (<div className={`${open ? 'flex' : 'hidden'} absolute top-[60px] left-0 w-full bg-white shadow-md py-4 flex-col items-start gap-2 px-5 text-sm md:hidden z-50`}>
                 <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
                 <NavLink to="/products" onClick={() => setOpen(false)}>All Product</NavLink>
                 {user && <NavLink to="/profile" onClick={() => setOpen(false)}>My Profile</NavLink>}

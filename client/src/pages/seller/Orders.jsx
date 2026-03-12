@@ -9,6 +9,7 @@ const Orders = () => {
     const [filterType, setFilterType] = useState('all'); // 'all' | 'date' | 'month'
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedMonth, setSelectedMonth] = useState('');
+    const [paymentFilter, setPaymentFilter] = useState('All'); // 'All' | 'COD' | 'Online'
 
     const fetchOrders = async () => {
         try {
@@ -45,16 +46,22 @@ const Orders = () => {
         const orderDate = new Date(order.createdAt);
         if (filterType === 'date' && selectedDate) {
             const picked = new Date(selectedDate);
-            return (
-                orderDate.getFullYear() === picked.getFullYear() &&
-                orderDate.getMonth() === picked.getMonth() &&
-                orderDate.getDate() === picked.getDate()
-            );
+            if (
+                orderDate.getFullYear() !== picked.getFullYear() ||
+                orderDate.getMonth() !== picked.getMonth() ||
+                orderDate.getDate() !== picked.getDate()
+            ) return false;
         }
         if (filterType === 'month' && selectedMonth) {
             const [yr, mo] = selectedMonth.split('-').map(Number);
-            return orderDate.getFullYear() === yr && orderDate.getMonth() + 1 === mo;
+            if (orderDate.getFullYear() !== yr || orderDate.getMonth() + 1 !== mo) return false;
         }
+
+        // Add payment filter
+        if (paymentFilter !== 'All') {
+            if (order.paymentType !== paymentFilter) return false;
+        }
+
         return true;
     });
 
@@ -99,6 +106,25 @@ const Orders = () => {
                     <span className="ml-auto text-sm text-gray-400">{filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}</span>
                 </div>
 
+                {/* Payment Filter Bar */}
+                <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <span className="text-sm font-medium text-gray-600">Payment:</span>
+                    <div className="flex gap-2">
+                        {['All', 'COD', 'Online'].map((method) => (
+                            <button
+                                key={method}
+                                onClick={() => setPaymentFilter(method)}
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${paymentFilter === method
+                                    ? 'bg-primary text-white shadow-sm'
+                                    : 'bg-white border border-gray-300 text-gray-600 hover:border-primary hover:text-primary'
+                                    }`}
+                            >
+                                {method}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 {filteredOrders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 w-full text-center border border-dashed border-gray-300 rounded-lg bg-gray-50/50">
                         <div className="bg-white p-6 rounded-full shadow-sm mb-4">
@@ -117,6 +143,7 @@ const Orders = () => {
                             <div className="flex gap-5 max-w-80">
                                 <img className="w-12 h-12 object-cover" src={assets.box_icon} alt="boxIcon" />
                                 <div>
+                                    <p className="text-xs font-semibold text-gray-400 mb-1">ID: {order._id}</p>
                                     {order.items.map((item, index) => (
                                         <div key={index} className="flex flex-col">
                                             <p className="font-medium">
