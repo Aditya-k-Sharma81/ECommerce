@@ -286,6 +286,12 @@ export const cancelOrder = async (req, res) => {
         order.status = "Cancelled";
         await order.save();
 
+        // Send cancellation email to user (self-cancelled)
+        const user = await User.findById(userId);
+        if (user && user.email) {
+            await sendStatusUpdateEmail(user.email, user.name, orderId, "Cancelled", "user");
+        }
+
         res.json({ success: true, message: "Order cancelled successfully" });
     } catch (error) {
         res.json({ success: false, message: error.message });

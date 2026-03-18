@@ -53,13 +53,17 @@ export const sendOrderConfirmationEmail = async (userEmail, userName, orderId, i
     }
 };
 
-export const sendStatusUpdateEmail = async (userEmail, userName, orderId, status) => {
+export const sendStatusUpdateEmail = async (userEmail, userName, orderId, status, cancelledBy = "seller") => {
     try {
         let statusMessage = `Your order status has been updated to: <strong>${status}</strong>.`;
         let subject = `Order Update - Order #${orderId}`;
 
         if (status === "Cancelled") {
-            statusMessage = `We regret to inform you that your order #${orderId} has been cancelled because the items are <strong>out of stock</strong>. We apologize for the inconvenience.`;
+            if (cancelledBy === "user") {
+                statusMessage = `Your order <strong>#${orderId}</strong> has been cancelled successfully as per your request. If this was a mistake, please place a new order.`;
+            } else {
+                statusMessage = `We regret to inform you that your order #${orderId} has been cancelled because the items are <strong>out of stock</strong>. We apologize for the inconvenience.`;
+            }
             subject = `Order Cancelled - Order #${orderId}`;
         }
 
