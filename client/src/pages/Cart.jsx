@@ -10,6 +10,7 @@ export default function Cart() {
     const [showAddress, setShowAddress] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [paymentOption, setPaymentOption] = useState("COD");
+    const [isLoading, setIsLoading] = useState(false);
 
     const getUserAddress = async () => {
         try {
@@ -39,6 +40,7 @@ export default function Cart() {
 
             // Place Order with COD
             if (paymentOption === "COD") {
+                setIsLoading(true);
                 const { data } = await axios.post('/api/order/cod', {
                     items: cartArray.map(item => ({
                         product: item._id,
@@ -55,6 +57,7 @@ export default function Cart() {
                 else {
                     toast.error(data.message);
                 }
+                setIsLoading(false);
             }
             else {
                 // Place Order with Stripe
@@ -72,6 +75,7 @@ export default function Cart() {
             }
         } catch (error) {
             toast.error(error.message);
+            setIsLoading(false);
         }
     }
 
@@ -112,6 +116,13 @@ export default function Cart() {
 
     return (
         <div className="flex flex-col md:flex-row mt-16">
+            {/* Green Loader Overlay */}
+            {isLoading && (
+                <div className="fixed top-16 inset-x-0 bottom-0 z-40 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+                    <div className="w-16 h-16 border-4 border-green-200 border-t-green-500 rounded-full animate-spin"></div>
+                    <p className="mt-4 text-green-600 font-medium text-lg">Placing your order...</p>
+                </div>
+            )}
             <div className='flex-1 max-w-4xl'>
                 <h1 className="text-3xl font-medium mb-6">
                     Shopping Cart <span className="text-sm text-primary">{getCartCount()} Items</span>
