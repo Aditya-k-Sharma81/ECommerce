@@ -6,12 +6,13 @@ import { v2 as cloudinary } from "cloudinary";
 export const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        const lowercaseEmail = email.toLowerCase();
 
         if (!name || !email || !password) {
             return res.json({ success: false, message: "Missing Details" });
         }
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: lowercaseEmail });
 
         if (existingUser) {
             return res.json({ success: false, message: "User already exists" });
@@ -19,7 +20,7 @@ export const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = await User.create({ name, email, password: hashedPassword });
+        const user = await User.create({ name, email: lowercaseEmail, password: hashedPassword });
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
         res.cookie("token", token, {

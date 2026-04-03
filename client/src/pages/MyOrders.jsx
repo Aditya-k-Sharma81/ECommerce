@@ -5,7 +5,7 @@ import { dummyOrders } from '../assets/assets';
 const MyOrders = () => {
 
     const [myOrders, setMyOrders] = useState([]);
-    const { currency, user, axios } = useAppContext();
+    const { currency, user, axios, navigate } = useAppContext();
 
     const fetchMyOrders = async () => {
         try {
