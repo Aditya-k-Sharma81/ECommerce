@@ -2,6 +2,7 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Stripe from 'stripe';
 import User from '../models/User.js';
+import Address from "../models/Address.js";
 import { sendOrderConfirmationEmail, sendStatusUpdateEmail } from "../utils/emailService.js";
 
 // Place Order COD : /api/order/cod
@@ -14,8 +15,9 @@ export const placeOrderCOD = async (req, res) => {
             return res.json({ success: false, message: "Invalid data" });
         }
 
-        // Fetch User for email
+        // Fetch User and Address for email
         const user = await User.findById(userId);
+        const addressDoc = await Address.findById(address);
 
         // calculate amount Using Items and collect item details for email
         let amount = 0;
@@ -42,9 +44,12 @@ export const placeOrderCOD = async (req, res) => {
         // Clear user cart
         await User.findByIdAndUpdate(userId, { cartItems: {} });
 
-        // Send confirmation email
-        if (user && user.email) {
-            await sendOrderConfirmationEmail(user.email, user.name, order._id, emailItems, amount);
+        // Send confirmation email to the email provided in shipping address
+        const destEmail = addressDoc ? addressDoc.email : (user ? user.email : null);
+        const destName = addressDoc ? `${addressDoc.firstName} ${addressDoc.lastName}` : (user ? user.name : "Customer");
+
+        if (destEmail) {
+            await sendOrderConfirmationEmail(destEmail, destName, order._id, emailItems, amount);
         }
 
         return res.json({ success: true, message: "Order Placed successfully" });
@@ -200,18 +205,22 @@ export const stripeWebhooks = async (request, response) => {
 
             console.log(`User found: ${user ? user.email : 'No'} | Order items: ${order ? order.items.length : 0}`);
 
-            // Send confirmation email
-            if (user && user.email && order) {
+            // Send confirmation email to shipping address email
+            const orderWithAddress = await Order.findById(orderId).populate("address");
+            const destEmail = orderWithAddress.address ? orderWithAddress.address.email : (user ? user.email : null);
+            const destName = orderWithAddress.address ? `${orderWithAddress.address.firstName} ${orderWithAddress.address.lastName}` : (user ? user.name : "Customer");
+
+            if (destEmail && order) {
                 const emailItems = order.items.map(item => ({
                     productName: item.product ? item.product.name : "Vegetable Item",
                     quantity: item.quantity,
                     price: item.product ? item.product.offerPrice : 0
                 }));
 
-                console.log("📧 Attempting to send online order confirmation email...");
-                await sendOrderConfirmationEmail(user.email, user.name, orderId, emailItems, order.amount);
+                console.log(`📧 Attempting to send online order confirmation email to ${destEmail}...`);
+                await sendOrderConfirmationEmail(destEmail, destName, orderId, emailItems, order.amount);
             } else {
-                console.error("❌ Could not send email: User or Order data missing during webhook.");
+                console.error("❌ Could not send email: Recipient email missing during webhook.");
             }
 
             break;
@@ -287,9 +296,13 @@ export const cancelOrder = async (req, res) => {
         await order.save();
 
         // Send cancellation email to user (self-cancelled)
-        const user = await User.findById(userId);
-        if (user && user.email) {
-            await sendStatusUpdateEmail(user.email, user.name, orderId, "Cancelled", "user");
+        // Send cancellation email to shipping address email
+        const orderWithAddress = await Order.findById(orderId).populate("address");
+        const destEmail = orderWithAddress.address ? orderWithAddress.address.email : (user ? user.email : null);
+        const destName = orderWithAddress.address ? `${orderWithAddress.address.firstName} ${orderWithAddress.address.lastName}` : (user ? user.name : "Customer");
+
+        if (destEmail) {
+            await sendStatusUpdateEmail(destEmail, destName, orderId, "Cancelled", "user");
         }
 
         res.json({ success: true, message: "Order cancelled successfully" });
@@ -316,9 +329,13 @@ export const updateStatus = async (req, res) => {
         await order.save();
 
         // Send status update email
-        const user = await User.findById(order.userId);
-        if (user && user.email) {
-            sendStatusUpdateEmail(user.email, user.name, orderId, status);
+        // Send status update email to shipping address email
+        const orderWithAddress = await Order.findById(orderId).populate("address");
+        const destEmail = orderWithAddress.address ? orderWithAddress.address.email : null;
+        const destName = orderWithAddress.address ? `${orderWithAddress.address.firstName} ${orderWithAddress.address.lastName}` : "Customer";
+
+        if (destEmail) {
+            sendStatusUpdateEmail(destEmail, destName, orderId, status);
         }
 
         res.json({ success: true, message: "Status Updated Successfully" });
